@@ -1,0 +1,69 @@
+rpcserver:
+ rpcserver: "127.0.0.1:9002"
+ timeout: "60s"
+
+rpcclient:
+ rpcclient: "http://127.0.0.1:9002"
+ timeout: "60s"
+
+leveldb:
+  datadir: "./leveldb"
+  tokendir: "token"
+
+group:
+  miner:
+    - "Miner"
+    - "Miner.Stop"
+    - "Miner.Start"
+    - "Miner.Setwokers"
+    - "Miner.Setgasprice"
+    - "Miner.Status"
+  wallet:
+    - "Wallet"
+    - "Wallet.List"
+    - "Wallet.Del"
+    - "Wallet.SetDefaultAddress"
+    - "Wallet.GetDefaultAddress"
+    - "Wallet.ExportByAddress"
+    - "Wallet.ImportByPrivateKey"
+    - "Wallet.SendTransaction"
+  chain:
+    - "Chain"
+    - "Chain.Head"
+    - "Chain.GetBlockByNumber"
+    - "Chain.GetBlockByHash"
+    - "Chain.GetTxsByBlockNum"
+    - "Chain.GetTxsByBlockHash"
+    - "Chain.GetReceiptByHash"
+    - "Chain.GetTransaction"
+    - "Chain.ExportBlocks"
+    - "Chain.ImportBlock"
+    - "Chain.GetSyncStatus"
+    - "Chain.GetBlockHeaderByHash"
+    - "Chain.GetBlockHeaderByNumber"
+    - "Chain.GetBlockTxCountByHash"
+    - "Chain.GetBlockTxCountByNum"
+    - "Chain.GetBlockTxByHashAndIndex"
+    - "Chain.GetBlockTxByNumAndIndex"
+  txpool:
+    - "TxPool"
+    - "TxPool.GetPending"
+    - "TxPool.GetPendingSize"
+    - "TxPool.GetTranByHash"
+    - "TxPool.GetQueue"
+    - "TxPool.RemoveTx"
+    - "TxPool.Clear"
+    - "TxPool.SendRawTransaction"
+  state:
+    - "State"
+    - "State.GetAccount"
+    - "State.GetBalance"
+  net:
+    - "Net"
+    - "Net.GetPeers"
+    - "Net.AddPeer"
+    - "Net.DelPeer"
+    - "Net.GetNodeId"
+
+
+    

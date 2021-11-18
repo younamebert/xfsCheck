@@ -1,27 +1,32 @@
-package xfsgotoken
+package xfsmiddle
 
 import (
-	"xfstoken/logs"
+	"flag"
+	"xfsmiddle/logs"
 
-	"github.com/gin-gonic/gin"
+	"github.com/smallnest/rpcx/server"
 )
 
-type server struct {
-	ginEngine *gin.Engine
-	log       logs.ILogger
+type Rpcserver struct {
+	Serve *server.Server
+	Logs  logs.ILogger
 }
 
-func Start() {
-
-}
-
-func Stop() {
-
-}
-
-func setupRouter() *server {
-	return &server{
-		ginEngine: gin.Default(),
-		log:       logs.NewLogger("server"),
+func NewRpcServer() *Rpcserver {
+	return &Rpcserver{
+		Serve: server.NewServer(),
+		Logs:  logs.NewLogger("rpcserver"),
 	}
+}
+
+func (s *Rpcserver) RegisterName(name string, rcvr interface{}) error {
+	return s.Serve.RegisterName(name, rcvr, "")
+}
+
+func (s *Rpcserver) Start(Apihost, Timeout string) error {
+	addr := flag.String("addr", Apihost, "server address")
+	if err := s.Serve.Serve("tcp", *addr); err != nil {
+		return err
+	}
+	return nil
 }

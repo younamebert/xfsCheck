@@ -1,6 +1,6 @@
 package main
 
-import "xfstoken/cmd/sub"
+import "xfsmiddle/cmd/sub"
 
 func main() {
 	sub.Execute()

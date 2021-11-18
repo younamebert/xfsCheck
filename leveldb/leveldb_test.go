@@ -1,3 +1,0 @@
-package leveldb
-
-// func Test

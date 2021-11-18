@@ -1,7 +1,7 @@
-package leveldb
+package db
 
 import (
-	"xfstoken/logs"
+	"xfsmiddle/logs"
 
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/util"
@@ -10,6 +10,7 @@ import (
 type IDatabase interface {
 	Put(key, value []byte) error
 	NewBatch()
+	BatchLen() int
 	BatchAdd(bat map[string]string) error
 	BatchDel(key string)
 	BatchCommit() error
@@ -46,6 +47,9 @@ func (db *Database) NewBatch() {
 	db.batch = new(leveldb.Batch)
 }
 
+func (db *Database) BatchLen() int {
+	return db.batch.Len()
+}
 func (db *Database) BatchAdd(bat map[string]string) error {
 	for key, val := range bat {
 		db.batch.Put([]byte(key), []byte(val))
