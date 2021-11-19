@@ -1,6 +1,10 @@
 package sub
 
-import "github.com/spf13/cobra"
+import (
+	"xfsmiddle"
+
+	"github.com/spf13/cobra"
+)
 
 var (
 	tokenCommand = &cobra.Command{
@@ -18,11 +22,9 @@ var (
 		},
 	}
 	tokenNewCommand = &cobra.Command{
-		Use:   "new",
+		Use:   "new [rights_group]",
 		Short: "Create token",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return newToken()
-		},
+		RunE:  newToken,
 	}
 	tokenDelCommand = &cobra.Command{
 		Use:   "delete <token>",
@@ -32,14 +34,54 @@ var (
 )
 
 func tokenList() error {
+	// config, err := rpcClientConfigParams(cfgFile)
+	// if err != nil {
+	// 	return err
+	// }
+	// cli := xfsmiddle.NewClient(config.rpcClientApiHost, config.rpcClientApiTimeOut)
+	// cli.Call()
 	return nil
 }
 
-func newToken() error {
+func newToken(cmd *cobra.Command, args []string) error {
+	config, err := rpcClientConfigParams(cfgFile)
+	if err != nil {
+		return err
+	}
+
+	cli := xfsmiddle.NewClient(config.rpcClientApiHost, config.rpcClientApiTimeOut)
+
+	req := new(newTokenArgs)
+	if len(args) > 0 {
+		req.group = args[0]
+	}
+
+	var result string
+	if err := cli.Call("Token.NewToken", &req, &result); err != nil {
+		return err
+	}
 	return nil
 }
 
 func delToken(cmd *cobra.Command, args []string) error {
+	if len(args) < 1 {
+		return cmd.Help()
+	}
+	config, err := rpcClientConfigParams(cfgFile)
+	if err != nil {
+		return err
+	}
+
+	cli := xfsmiddle.NewClient(config.rpcClientApiHost, config.rpcClientApiTimeOut)
+
+	req := &delTokenArgs{
+		token: args[0],
+	}
+
+	var result string
+	if err := cli.Call("Token.DelToken", &req, &result); err != nil {
+		return err
+	}
 	return nil
 }
 

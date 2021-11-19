@@ -11,9 +11,8 @@ const (
 	defaultConfigFile = "./config.yml"
 )
 
-type Config struct {
+type backConfig struct {
 	serve   serverConfig
-	client  clientConfig
 	group   groupConfig
 	tokenDb tokenDbConfig
 }
@@ -41,20 +40,18 @@ type tokenDbConfig struct {
 	tokenDbDir string
 }
 
-func runConfig(configPath string) (*Config, error) {
+func runConfig(configPath string) (*backConfig, error) {
 	config := viper.New()
 	if err := setViperPath(config, configPath); err != nil {
 		return nil, err
 	}
-	return &Config{
+	return &backConfig{
 		serve:   rpcServerConfigParams(config),
-		client:  rpcClientConfigParams(config),
 		group:   groupConfigParams(config),
 		tokenDb: tokenDbConfigParams(config),
 	}, nil
 
 }
-
 func setViperPath(v *viper.Viper, customFile string) error {
 	filename := filepath.Base(defaultConfigFile)
 	ext := filepath.Ext(defaultConfigFile)
@@ -76,11 +73,16 @@ func rpcServerConfigParams(v *viper.Viper) serverConfig {
 	return serverConfig
 }
 
-func rpcClientConfigParams(v *viper.Viper) clientConfig {
-	clientConfig := clientConfig{}
-	clientConfig.rpcClientApiHost = v.GetString("rpcclient.rpcclient")
-	clientConfig.rpcClientApiTimeOut = v.GetString("rpcclient.timeout")
-	return clientConfig
+func rpcClientConfigParams(configPath string) (*clientConfig, error) {
+	config := viper.New()
+	if err := setViperPath(config, configPath); err != nil {
+		return nil, err
+	}
+
+	return &clientConfig{
+		rpcClientApiHost:    config.GetString("rpcclient.rpcclient"),
+		rpcClientApiTimeOut: config.GetString("rpcclient.timeout"),
+	}, nil
 }
 
 func groupConfigParams(v *viper.Viper) groupConfig {

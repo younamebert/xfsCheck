@@ -27,10 +27,13 @@ func StartBack(g GroupsConfig, token TokenDbConfig, rs RpcServerConfig) error {
 
 	groups := setupGroups(g)
 	webtoken := setupToken(token, groups)
+
 	server.RegisterName("Token", webtoken)
-	if err := server.Start(rs.Apihost, rs.Timeout); err != nil {
-		return err
-	}
+
+	go func() {
+		server.Start(rs.Apihost, rs.Timeout)
+	}()
+	xfsmiddle.Runway()
 	return nil
 }
 

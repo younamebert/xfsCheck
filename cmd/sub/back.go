@@ -38,11 +38,13 @@ func Start() error {
 	if err != nil {
 		return err
 	}
-
 	// utils.
 	gConfig := setupGroupConfig(*config)
 
 	db, err := db.New(config.tokenDb.tokenDbDir)
+	if err != nil {
+		return err
+	}
 	tConfig := util.TokenDbConfig{
 		Db: db,
 	}
@@ -58,7 +60,7 @@ func Start() error {
 	return nil
 }
 
-func setupGroupConfig(g Config) util.GroupsConfig {
+func setupGroupConfig(g backConfig) util.GroupsConfig {
 	rights := make(util.GroupsConfig, 0)
 
 	rights = append(rights, map[string][]string{

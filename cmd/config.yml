@@ -3,7 +3,7 @@ rpcserver:
  timeout: "60s"
 
 rpcclient:
- rpcclient: "http://127.0.0.1:9002"
+ rpcclient: "127.0.0.1:9002"
  timeout: "60s"
 
 leveldb:
