@@ -29,11 +29,14 @@ func StartBack(g GroupsConfig, token TokenDbConfig, rs RpcServerConfig) error {
 	webtoken := setupToken(token, groups)
 
 	server.RegisterName("Token", webtoken)
-
+	// server.Serve
 	go func() {
 		server.Start(rs.Apihost, rs.Timeout)
 	}()
-	xfsmiddle.Runway()
+
+	gateway := xfsmiddle.NewRpcGateway(":9004", rs.Apihost, 1, xfsmiddle.New(token.Db), server.ServiceMap())
+	gateway.Start()
+	select {}
 	return nil
 }
 

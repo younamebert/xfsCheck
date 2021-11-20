@@ -14,6 +14,10 @@ type Token struct {
 	Rights      *xfsmiddle.Groups
 }
 
+type DelTokenArgs struct {
+	Token string `json:"token"`
+}
+
 func (t *Token) DelToken(ctx context.Context, args *DelTokenArgs, reply *string) error {
 	if args.Token == "" {
 		return ctx.Err()

@@ -38,7 +38,7 @@ func Start() error {
 	if err != nil {
 		return err
 	}
-	// utils.
+
 	gConfig := setupGroupConfig(*config)
 
 	db, err := db.New(config.tokenDb.tokenDbDir)
@@ -86,8 +86,6 @@ func setupGroupConfig(g backConfig) util.GroupsConfig {
 }
 
 func init() {
-	// rpcServerCommand.AddCommand(rpcServerStopCommand)
-	// rpcServerCommand.AddCommand(rpcServerStartCommand)
 	rootCmd.AddCommand(rpcServerCommand)
 	mFlags := rootCmd.PersistentFlags()
 	mFlags.StringVarP(&cfgFile, "config", "C", "", "Set config file")

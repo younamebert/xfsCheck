@@ -36,7 +36,6 @@ func (cli *Client) Call(methods string, args, reply interface{}) error {
 
 	xclient := client.NewXClient(temp[0], client.Failtry, client.RandomSelect, d, opt)
 	defer xclient.Close()
-
 	err = xclient.Call(context.Background(), temp[1], args, reply)
 	if err != nil {
 		return err
