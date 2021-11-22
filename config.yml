@@ -1,12 +1,22 @@
 rpcserver:
- rpcserver: ":9002"
+ rpcserver: "127.0.0.1:9006"
  timeout: "60s"
 
 rpcclient:
- rpcclient: "http://127.0.0.1:9002"
+ rpcclient: "127.0.0.1:9006"
  timeout: "60s"
 
-rights:
+gateway:
+  apihost: ":8002"
+  rpcaddr: "http://127.0.0.1:9006"
+  nodeaddr: "http://127.0.0.1:9001" 
+  timeout: "60s"
+
+leveldb:
+  datadir: "./leveldb"
+  tokendir: "token"
+
+group:
   miner:
     - "Miner"
     - "Miner.Stop"

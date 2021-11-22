@@ -2,6 +2,7 @@ package xfsmiddle
 
 import (
 	"crypto/md5"
+	"encoding/hex"
 	"io"
 	"strconv"
 	"time"
@@ -22,11 +23,11 @@ func (n *TokenManage) NewToken(Group string) (string, error) {
 	crutime := time.Now().Unix()
 	h := md5.New()
 	io.WriteString(h, strconv.FormatInt(crutime, 10))
-	result := h.Sum(nil)
-	if err := n.tokenDb.Put(result, []byte(Group)); err != nil {
+	result := hex.EncodeToString(h.Sum(nil))
+	if err := n.tokenDb.Put([]byte(result), []byte(Group)); err != nil {
 		return "", err
 	}
-	return string(result), nil
+	return result, nil
 }
 
 func (n *TokenManage) DelToken(token string) error {

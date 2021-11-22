@@ -42,6 +42,7 @@ func (t *Token) NewToken(ctx context.Context, args *NewTokenArgs, reply *string)
 	if err != nil {
 		return err
 	}
+
 	*reply = result
 	return nil
 }

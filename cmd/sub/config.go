@@ -15,6 +15,7 @@ type backConfig struct {
 	serve   serverConfig
 	group   groupConfig
 	tokenDb tokenDbConfig
+	gateway gatewayConfig
 }
 
 type serverConfig struct {
@@ -40,6 +41,13 @@ type tokenDbConfig struct {
 	tokenDbDir string
 }
 
+type gatewayConfig struct {
+	apihost  string
+	timeout  string
+	nodeaddr string
+	rpcaddr  string
+}
+
 func runConfig(configPath string) (*backConfig, error) {
 	config := viper.New()
 	if err := setViperPath(config, configPath); err != nil {
@@ -49,6 +57,7 @@ func runConfig(configPath string) (*backConfig, error) {
 		serve:   rpcServerConfigParams(config),
 		group:   groupConfigParams(config),
 		tokenDb: tokenDbConfigParams(config),
+		gateway: gatewayConfigParams(config),
 	}, nil
 
 }
@@ -102,4 +111,13 @@ func tokenDbConfigParams(v *viper.Viper) tokenDbConfig {
 	datadbDir := v.GetString("leveldb.datadir")
 	tokenDbConfig.tokenDbDir = filepath.Join(datadbDir, v.GetString("leveldb.tokendir"))
 	return tokenDbConfig
+}
+
+func gatewayConfigParams(v *viper.Viper) gatewayConfig {
+	gatewayConfig := gatewayConfig{}
+	gatewayConfig.apihost = v.GetString("gateway.apihost")
+	gatewayConfig.timeout = v.GetString("gateway.timeout")
+	gatewayConfig.rpcaddr = v.GetString("gateway.rpcaddr")
+	gatewayConfig.nodeaddr = v.GetString("gateway.nodeaddr")
+	return gatewayConfig
 }

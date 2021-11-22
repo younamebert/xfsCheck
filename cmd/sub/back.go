@@ -3,7 +3,6 @@ package sub
 import (
 	"xfsmiddle/db"
 	"xfsmiddle/utils"
-	util "xfsmiddle/utils"
 
 	"github.com/spf13/cobra"
 )
@@ -45,23 +44,31 @@ func Start() error {
 	if err != nil {
 		return err
 	}
-	tConfig := util.TokenDbConfig{
+	tConfig := utils.TokenDbConfig{
 		Db: db,
 	}
 
 	rpcsever := utils.RpcServerConfig{
-		Apihost: config.serve.rpcServerApiHost,
-		Timeout: config.serve.rpcServerApiTimeOut,
+		ApiHost: config.serve.rpcServerApiHost,
+		TimeOut: config.serve.rpcServerApiTimeOut,
 	}
 
-	if err := util.StartBack(gConfig, tConfig, rpcsever); err != nil {
+	gateway := utils.GatewayConfig{
+		ApiHost:  config.gateway.apihost,
+		TimeOut:  config.gateway.timeout,
+		NodeAddr: config.gateway.nodeaddr,
+		RpcAddr:  config.gateway.rpcaddr,
+	}
+	// fmt.Printf(":%v\n", config.gateway.rpcaddr)
+
+	if err := utils.StartBack(gConfig, tConfig, rpcsever, gateway); err != nil {
 		return err
 	}
 	return nil
 }
 
-func setupGroupConfig(g backConfig) util.GroupsConfig {
-	rights := make(util.GroupsConfig, 0)
+func setupGroupConfig(g backConfig) utils.GroupsConfig {
+	rights := make(utils.GroupsConfig, 0)
 
 	rights = append(rights, map[string][]string{
 		"Chain": g.group.chain,

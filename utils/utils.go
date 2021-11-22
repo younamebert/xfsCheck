@@ -9,32 +9,40 @@ import (
 type GroupsConfig []map[string][]string
 
 type RpcServerConfig struct {
-	Apihost string
-	Timeout string
+	ApiHost string
+	TimeOut string
 }
 
 type RpcClientConfig struct {
-	Apihost string
-	Timeout string
+	ApiHost string
+	TimeOut string
 }
 
 type TokenDbConfig struct {
 	Db db.IDatabase
 }
 
-func StartBack(g GroupsConfig, token TokenDbConfig, rs RpcServerConfig) error {
+type GatewayConfig struct {
+	RpcAddr  string
+	TimeOut  string
+	NodeAddr string
+	ApiHost  string
+}
+
+func StartBack(group GroupsConfig, token TokenDbConfig, rpcserve RpcServerConfig, gates GatewayConfig) error {
 	server := xfsmiddle.NewRpcServer()
 
-	groups := setupGroups(g)
+	groups := setupGroups(group)
 	webtoken := setupToken(token, groups)
 
 	server.RegisterName("Token", webtoken)
-	// server.Serve
+
 	go func() {
-		server.Start(rs.Apihost, rs.Timeout)
+		server.Start(rpcserve.ApiHost, rpcserve.TimeOut)
 	}()
 
-	gateway := xfsmiddle.NewRpcGateway(":9004", rs.Apihost, 1, xfsmiddle.New(token.Db), server.ServiceMap())
+	gateway := xfsmiddle.NewRpcGateway(gates.RpcAddr, gates.ApiHost, gates.TimeOut, gates.NodeAddr, xfsmiddle.New(token.Db), server.ServiceMap())
+
 	gateway.Start()
 	select {}
 	return nil

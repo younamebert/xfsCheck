@@ -1,6 +1,7 @@
 package sub
 
 import (
+	"fmt"
 	"xfsmiddle"
 
 	"github.com/spf13/cobra"
@@ -60,6 +61,7 @@ func newToken(cmd *cobra.Command, args []string) error {
 	if err := cli.Call("Token.NewToken", &req, &result); err != nil {
 		return err
 	}
+	fmt.Printf("%s\n", result)
 	return nil
 }
 

@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"reflect"
 	"strings"
@@ -15,20 +14,24 @@ import (
 	"xfsmiddle/common"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-resty/resty/v2"
 	gateway "github.com/rpcxio/rpcx-gateway"
 	"github.com/smallnest/rpcx/codec"
 )
 
-type RpcGatewayConfig struct {
-	RpcServerHost     string
-	GatewayServerHost string
+type rpcGatewayConfig struct {
+	rpcServeAddr string
+	gatesHost    string
+	timeOut      string
+	nodeAddr     string
 }
 
 type RpcGateway struct {
 	Server     *gin.Engine
 	Token      *TokenManage
 	serviceMap map[string]*service
-	config     RpcGatewayConfig
+	config     rpcGatewayConfig
+	msgpack    codec.MsgpackCodec
 }
 
 var whitelist = []string{"Token"}
@@ -58,15 +61,17 @@ func timeoutMiddleware(timeout time.Duration) func(c *gin.Context) {
 	}
 }
 
-func NewRpcGateway(rpchost, gatewayhost string, timeout int, token *TokenManage, serviceMap map[string]*service) *RpcGateway {
+func NewRpcGateway(rpcaddr, gatewayhost, timeout, nodeaddr string, token *TokenManage, serviceMap map[string]*service) *RpcGateway {
 
-	config := RpcGatewayConfig{
-		RpcServerHost:     rpchost,
-		GatewayServerHost: gatewayhost,
+	config := rpcGatewayConfig{
+		rpcServeAddr: rpcaddr,
+		timeOut:      timeout,
+		gatesHost:    gatewayhost,
+		nodeAddr:     nodeaddr,
 	}
 
 	return &RpcGateway{
-		Server:     setupRouter(gatewayhost, timeout),
+		Server:     setupRouter(gatewayhost, 1),
 		Token:      token,
 		serviceMap: serviceMap,
 		config:     config,
@@ -94,15 +99,22 @@ func (gates *RpcGateway) Start() {
 		token := c.Query("token")
 		temp := strings.Split(person["method"].(string), ".") // get methods
 
-		// 白名单接口
+		// Whitelist interface
 		if common.IsHave(temp[0], whitelist) {
-			if err := gates.sendApi(person, gates.config.GatewayServerHost); err != nil {
+
+			reply, err := gates.sendApi(person)
+			if err != nil {
 				createError(err.Error(), person, c.Writer)
 			}
+			bs, err := json.Marshal(reply)
+			if err != nil {
+				createError(err.Error(), person, c.Writer)
+			}
+			createSuccess(bs, person, c.Writer)
 			return
 		}
 
-		// 转发接口
+		// Forwarding interface
 		group, err := gates.Token.GetToken(token)
 		if err != nil {
 			createError(" token does not exist", person, c.Writer)
@@ -112,14 +124,15 @@ func (gates *RpcGateway) Start() {
 			createError(err.Error(), person, c.Writer)
 			return
 		}
-		if err := gates.sendApi(person, gates.config.GatewayServerHost); err != nil {
+		reply, err := gates.reqRepeater(person)
+		if err != nil {
 			createError(err.Error(), person, c.Writer)
+			return
 		}
+		createSuccess(reply, person, c.Writer)
 	})
 
-	gates.Server.Run(":9004")
-	// server.logger.Infof("RPC Service listen on: %s", ln.Addr())
-	// return server.ginEngine.RunListener(ln)
+	gates.Server.Run(gates.config.gatesHost)
 }
 
 func formatRule(req *http.Request) (map[string]interface{}, error) {
@@ -164,14 +177,13 @@ func createError(errmsg string, person map[string]interface{}, w gin.ResponseWri
 	_, _ = w.Write(bs)
 }
 
-// func createSuccess(reply interface{}, person map[string]interface{}, w gin.ResponseWriter) {
-// 	out := make(map[string]interface{})
-// 	out["jsonrpc"] = person["jsonrpc"]
-// 	out["id"] = person["id"]
-// 	out["result"] = reply
-// 	bs, _ := json.Marshal(out)
-// 	_, _ = w.Write(bs)
-// }
+func createSuccess(reply []byte, person map[string]interface{}, w gin.ResponseWriter) {
+	out := make(map[string]interface{})
+	out["jsonrpc"] = person["jsonrpc"]
+	out["id"] = person["id"]
+	out["result"] = reply
+	_, _ = w.Write(reply)
+}
 
 func tokenCheck(group, methods string) error {
 	want := strings.Split(string(group), ",") // user group all
@@ -187,7 +199,11 @@ func tokenCheck(group, methods string) error {
 
 }
 
-func SetStructFieldByJsonName(method *methodType, fields map[string]interface{}) interface{} {
+func SetStructFieldByJsonName(method *methodType, params interface{}) interface{} {
+	fields, ok := params.(map[string]interface{})
+	if !ok {
+		return nil
+	}
 	var v reflect.Value
 	if method.ArgType.Kind() == reflect.Ptr {
 		v = reflect.New(method.ArgType.Elem())
@@ -217,23 +233,22 @@ func SetStructFieldByJsonName(method *methodType, fields map[string]interface{})
 	return v.Interface()
 }
 
-// v := reflect.ValueOf(ptr).Elem() // the struct variable
-func (gates *RpcGateway) sendApi(person map[string]interface{}, GatewayServerHost string) error {
-	cc := &codec.MsgpackCodec{}
+func (gates *RpcGateway) sendApi(person map[string]interface{}) (interface{}, error) {
+
 	temp := strings.Split(person["method"].(string), ".")
 
 	method := gates.serviceMap[temp[0]].method[temp[1]]
 
 	args := SetStructFieldByJsonName(method, person["params"].(map[string]interface{}))
-	// fmt.Printf("argv:%v\n", argv)
-	data, err := cc.Encode(args)
-	if err != nil {
-		return err
-	}
 
-	req, err := http.NewRequest("POST", "http://127.0.0.1:9002/", bytes.NewReader(data))
+	data, err := gates.msgpack.Encode(args)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	// temp := strings.Split(person["method"].(string), ".")
+	req, err := http.NewRequest("POST", gates.config.rpcServeAddr, bytes.NewReader(data))
+	if err != nil {
+		return nil, err
 	}
 
 	// set extra headers
@@ -247,27 +262,91 @@ func (gates *RpcGateway) sendApi(person map[string]interface{}, GatewayServerHos
 	// send to gateway
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Fatal("failed to call: ", err)
+		return nil, err
 	}
 	defer res.Body.Close()
 
 	// handle http response
 	replyData, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Fatal("failed to read response: ", err)
+		return nil, err
 	}
 
 	// parse reply
-	var reply string
-	err = cc.Decode(replyData, &reply)
+	var reply interface{}
+	err = gates.msgpack.Decode(replyData, &reply)
 	if err != nil {
-		fmt.Printf("eerr;%v\n", err)
-		return err
+		return nil, err
+	}
+	return reply, nil
+}
+
+type jsonRPCReq struct {
+	JsonRPC string      `json:"jsonrpc"`
+	ID      int         `json:"id"`
+	Method  string      `json:"method"`
+	Params  interface{} `json:"params"`
+}
+
+type jsonRPCResp struct {
+	JSONRPC string      `json:"jsonrpc"`
+	Result  interface{} `json:"result"`
+	Error   *RPCError   `json:"error"`
+	ID      int         `json:"id"`
+}
+
+func (gates *RpcGateway) reqRepeater(person map[string]interface{}) ([]byte, error) {
+
+	data := gates.repeaterStruct(person)
+	if data == nil {
+		return nil, fmt.Errorf("person to struct Error")
 	}
 
-	// cli := NewClient(GatewayServerHost, "10s")
-	// result := make(map[string])
-	// return nil
-	// cli.Call(person["method"].(string),)
-	return nil
+	client := resty.New()
+
+	timeDur, err := time.ParseDuration(gates.config.timeOut)
+	if err != nil {
+		return nil, err
+	}
+	client = client.SetTimeout(timeDur)
+
+	var resp *jsonRPCResp = nil
+	r, err := client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(data).
+		SetResult(&resp). // or SetResult(AuthSuccess{}).
+		Post(gates.config.nodeAddr)
+	if err != nil {
+		return nil, err
+	}
+	if resp == nil {
+		return nil, fmt.Errorf("resp null")
+	}
+	e := resp.Error
+	if e != nil {
+		return nil, e
+	}
+	_, err = json.Marshal(resp.Result)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.Body(), nil
+}
+
+func (gates *RpcGateway) repeaterStruct(person map[string]interface{}) *jsonRPCReq {
+	id := person["id"].(json.Number)
+
+	id2int, err := id.Int64()
+	if err != nil {
+		return nil
+	}
+
+	req := &jsonRPCReq{
+		JsonRPC: "2.0",
+		ID:      int(id2int),
+		Method:  person["method"].(string),
+		Params:  person["params"],
+	}
+	return req
 }

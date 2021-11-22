@@ -24,5 +24,6 @@ type ForWard struct {
 }
 
 func SendForWard(ctx context.Context, args *jsonRPCReq, reply *string) error {
+
 	return nil
 }
