@@ -30,8 +30,8 @@ func (g *Groups) Get(Methods []string) []string {
 	return rights
 }
 
-func (g *Groups) GetAll() *Groups {
-	return g
+func (g *Groups) GetAll() Groups {
+	return *g
 }
 
 func (g *Groups) GetTypes() []string {

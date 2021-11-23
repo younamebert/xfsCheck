@@ -1,5 +1,7 @@
 package web
 
+type Empty struct{}
+
 type NewTokenArgs struct {
 	Group string `json:"group"`
 }

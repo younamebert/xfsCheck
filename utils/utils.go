@@ -32,10 +32,12 @@ type GatewayConfig struct {
 func StartBack(group GroupsConfig, token TokenDbConfig, rpcserve RpcServerConfig, gates GatewayConfig) error {
 	server := xfsmiddle.NewRpcServer()
 
-	groups := setupGroups(group)
+	groups := initGroups(group)
 	webtoken := setupToken(token, groups)
+	webgroups := setupGroups(groups)
 
 	server.RegisterName("Token", webtoken)
+	server.RegisterName("Groups", webgroups)
 
 	go func() {
 		server.Start(rpcserve.ApiHost, rpcserve.TimeOut)
@@ -48,7 +50,7 @@ func StartBack(group GroupsConfig, token TokenDbConfig, rpcserve RpcServerConfig
 	return nil
 }
 
-func setupGroups(g GroupsConfig) *xfsmiddle.Groups {
+func initGroups(g GroupsConfig) *xfsmiddle.Groups {
 	groups := &xfsmiddle.Groups{}
 	for _, v := range g {
 		for ks, vs := range v {
@@ -56,6 +58,12 @@ func setupGroups(g GroupsConfig) *xfsmiddle.Groups {
 		}
 	}
 	return groups
+}
+
+func setupGroups(g *xfsmiddle.Groups) *web.Groups {
+	return &web.Groups{
+		Groups: g,
+	}
 }
 
 func setupToken(token TokenDbConfig, g *xfsmiddle.Groups) *web.Token {

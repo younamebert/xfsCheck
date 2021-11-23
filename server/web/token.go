@@ -60,7 +60,6 @@ func (t *Token) GetGroupByToken(ctx context.Context, args *GetGroupByTokenArgs, 
 }
 
 func (t *Token) PutTokenGroup(ctx context.Context, args *PutTokenGroupArgs, reply *string) error {
-
 	if args.Group != "" {
 		want := strings.Split(args.Group, ",")
 		got := t.Rights.Get(want)

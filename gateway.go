@@ -34,7 +34,7 @@ type RpcGateway struct {
 	msgpack    codec.MsgpackCodec
 }
 
-var whitelist = []string{"Token"}
+var whitelist = []string{"Token", "Groups"}
 
 func timeoutMiddleware(timeout time.Duration) func(c *gin.Context) {
 	return func(c *gin.Context) {
@@ -151,18 +151,22 @@ func formatRule(req *http.Request) (map[string]interface{}, error) {
 	decoder.UseNumber()
 	decoder.Decode(&person)
 
-	if _, ok := person["method"]; !ok {
+	method, ok := person["method"].(string)
+	methodLen := strings.Split(method, ".")
+	if !ok || len(methodLen) != 2 {
 		return nil, errors.New("no rule no match")
 	}
-	if _, ok := person["params"]; !ok {
-		return nil, errors.New("no rule no match")
-	}
-	if _, ok := person["id"]; !ok {
+
+	if _, ok := person["id"].(json.Number); !ok {
 		return nil, errors.New("no rule no match")
 
 	}
-	if _, ok := person["jsonrpc"]; !ok {
+	jsonrpc, ok := person["jsonrpc"].(string)
+	if !ok {
 		return nil, errors.New("no rule no match")
+	}
+	if jsonrpc != "2.0" {
+		return nil, errors.New("no rule no match jsonrpc2.0")
 	}
 
 	return person, nil
