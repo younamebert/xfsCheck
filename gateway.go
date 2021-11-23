@@ -181,8 +181,10 @@ func createSuccess(reply []byte, person map[string]interface{}, w gin.ResponseWr
 	out := make(map[string]interface{})
 	out["jsonrpc"] = person["jsonrpc"]
 	out["id"] = person["id"]
-	out["result"] = reply
-	_, _ = w.Write(reply)
+	out["result"] = json.RawMessage(reply)
+	// fmt.Printf("result:%v\n", string(reply))
+	bs, _ := json.Marshal(out)
+	_, _ = w.Write(bs)
 }
 
 func tokenCheck(group, methods string) error {
@@ -200,10 +202,7 @@ func tokenCheck(group, methods string) error {
 }
 
 func SetStructFieldByJsonName(method *methodType, params interface{}) interface{} {
-	fields, ok := params.(map[string]interface{})
-	if !ok {
-		return nil
-	}
+
 	var v reflect.Value
 	if method.ArgType.Kind() == reflect.Ptr {
 		v = reflect.New(method.ArgType.Elem())
@@ -211,6 +210,11 @@ func SetStructFieldByJsonName(method *methodType, params interface{}) interface{
 		v = reflect.New(method.ArgType)
 	}
 	v = v.Elem()
+
+	if params == nil {
+		return v.Interface()
+	}
+	fields := params.(map[string]interface{})
 
 	for i := 0; i < v.NumField(); i++ {
 
@@ -238,8 +242,12 @@ func (gates *RpcGateway) sendApi(person map[string]interface{}) (interface{}, er
 	temp := strings.Split(person["method"].(string), ".")
 
 	method := gates.serviceMap[temp[0]].method[temp[1]]
-
-	args := SetStructFieldByJsonName(method, person["params"].(map[string]interface{}))
+	var args interface{}
+	if params, ok := person["params"].(map[string]interface{}); ok {
+		args = SetStructFieldByJsonName(method, params)
+	} else {
+		args = SetStructFieldByJsonName(method, nil)
+	}
 
 	data, err := gates.msgpack.Encode(args)
 	if err != nil {
@@ -311,7 +319,7 @@ func (gates *RpcGateway) reqRepeater(person map[string]interface{}) ([]byte, err
 	client = client.SetTimeout(timeDur)
 
 	var resp *jsonRPCResp = nil
-	r, err := client.R().
+	_, err = client.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(data).
 		SetResult(&resp). // or SetResult(AuthSuccess{}).
@@ -326,17 +334,15 @@ func (gates *RpcGateway) reqRepeater(person map[string]interface{}) ([]byte, err
 	if e != nil {
 		return nil, e
 	}
-	_, err = json.Marshal(resp.Result)
+	bs, err := json.Marshal(resp.Result)
 	if err != nil {
 		return nil, err
 	}
-
-	return r.Body(), nil
+	return bs, nil
 }
 
 func (gates *RpcGateway) repeaterStruct(person map[string]interface{}) *jsonRPCReq {
 	id := person["id"].(json.Number)
-
 	id2int, err := id.Int64()
 	if err != nil {
 		return nil
