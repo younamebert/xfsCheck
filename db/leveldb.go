@@ -23,8 +23,8 @@ type IDatabase interface {
 }
 
 type Database struct {
-	db    *leveldb.DB
-	log   logs.ILogger
+	Db    *leveldb.DB
+	Log   logs.ILogger
 	batch *leveldb.Batch
 }
 
@@ -34,13 +34,13 @@ func New(pathname string) (*Database, error) {
 		return nil, err
 	}
 	return &Database{
-		db:  db,
-		log: logs.NewLogger("database"),
+		Db:  db,
+		Log: logs.NewLogger("database"),
 	}, nil
 }
 
 func (db *Database) Put(key, value []byte) error {
-	return db.db.Put(key, value, nil)
+	return db.Db.Put(key, value, nil)
 }
 
 func (db *Database) NewBatch() {
@@ -62,7 +62,7 @@ func (db *Database) BatchDel(key string) {
 }
 
 func (db *Database) BatchCommit() error {
-	err := db.db.Write(db.batch, nil)
+	err := db.Db.Write(db.batch, nil)
 	if err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func (db *Database) PutStr(key, value string) error {
 }
 
 func (db *Database) Get(key []byte) ([]byte, error) {
-	return db.db.Get(key, nil)
+	return db.Db.Get(key, nil)
 }
 
 func (db *Database) GetStr(key string) ([]byte, error) {
@@ -83,11 +83,11 @@ func (db *Database) GetStr(key string) ([]byte, error) {
 }
 
 func (db *Database) Delete(key []byte) error {
-	return db.db.Delete(key, nil)
+	return db.Db.Delete(key, nil)
 }
 
 func (db *Database) Foreach(fn func(k string, v []byte) error) error {
-	iter := db.db.NewIterator(nil, nil)
+	iter := db.Db.NewIterator(nil, nil)
 	for iter.Next() {
 		// Remember that the contents of the returned slice should not be modified, and
 		// only valid until the next call to Next.

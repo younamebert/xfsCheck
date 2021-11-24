@@ -3,20 +3,11 @@ package db
 import (
 	"testing"
 	"xfsmiddle/common"
-
-	"github.com/syndtr/goleveldb/leveldb"
-	"github.com/syndtr/goleveldb/leveldb/storage"
+	test "xfsmiddle/tests"
 )
 
 func newDb() (*Database, error) {
-	db, err := leveldb.Open(storage.NewMemStorage(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Database{
-		db: db,
-	}, nil
+	return test.NewDb()
 }
 func Test_Put(t *testing.T) {
 	db, err := newDb()
